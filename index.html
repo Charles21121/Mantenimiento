@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ficha Técnica de Mantenimiento de Equipos</title>
+  <!-- PapaParse para procesar CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Iconos FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --primary: #198754;
+      --danger: #dc3545;
+      --info: #0d6efd;
+      --warning: #fd7e14;
+      --dark: #212529;
+      --light-bg: #f4f6f9;
+      --border-color: #000;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { background-color: var(--light-bg); margin: 0; padding: 20px; color: #222; }
+
+    /* PANEL DE CONTROL SUPERIOR */
+    .control-panel {
+      background: #fff;
+      max-width: 1050px;
+      margin: 0 auto 20px;
+      padding: 18px 22px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .status-text {
+      color: #155724;
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-sync {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+    .filter-item label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #495057;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    .filter-item select {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #ced4da;
+      border-radius: 5px;
+      font-size: 0.82rem;
+      background: #fff;
+    }
+    .actions-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn {
+      border: none;
+      padding: 7px 14px;
+      border-radius: 5px;
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-green { background: #28a745; }
+    .btn-blue { background: #007bff; }
+    .btn-orange { background: #fd7e14; }
+    .btn-gray { background: #6c757d; }
+    .btn-red { background: #d32f2f; margin-left: auto; }
+
+    /* DOCUMENTO TIPO HOJA A4 */
+    .sheet-page {
+      background: #fff;
+      width: 100%;
+      max-width: 980px;
+      margin: 0 auto 30px;
+      padding: 40px 50px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    .doc-header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .doc-header h2 {
+      margin: 0 0 5px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .doc-header p {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #333;
+    }
+
+    /* TABLA DE FICHA TÉCNICA */
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 0.82rem;
+    }
+    .meta-table td {
+      border: 1px solid #000;
+      padding: 6px 10px;
+      vertical-align: middle;
+    }
+    .meta-table td.label-col {
+      width: 25%;
+      font-weight: bold;
+      background-color: #fafafa;
+    }
+    .meta-table td.value-col {
+      width: 75%;
+    }
+
+    /* SECCIÓN DE FIRMAS */
+    .signatures {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 50px;
+      padding: 0 30px;
+    }
+    .signature-box {
+      width: 42%;
+      text-align: center;
+    }
+    .sig-line {
+      border-top: 1px solid #000;
+      margin-bottom: 8px;
+    }
+    .sig-name {
+      font-size: 0.85rem;
+      font-weight: bold;
+      outline: none;
+      text-transform: uppercase;
+    }
+    .sig-role {
+      font-size: 0.75rem;
+      color: #444;
+      outline: none;
+    }
+
+    /* PÁGINA ANEXO */
+    .page-break {
+      page-break-before: always;
+      margin-top: 40px;
+      padding-top: 25px;
+      border-top: 1px dashed #bbb;
+    }
+    .anexo-header {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .anexo-header h3 {
+      margin: 0 0 4px;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+    .anexo-header p {
+      margin: 0;
+      font-size: 0.8rem;
+      color: #444;
+    }
+
+    /* TABLA DE EQUIPOS */
+    .devices-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+    }
+    .devices-table th, .devices-table td {
+      border: 1px solid #999;
+      padding: 5px 6px;
+      text-align: center;
+    }
+    .devices-table th {
+      background-color: #f1f3f5;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .devices-table td.text-left {
+      text-align: left;
+    }
+    .editable-cell {
+      outline: none;
+      cursor: text;
+    }
+    .editable-cell:focus {
+      background-color: #e8f0fe;
+    }
+    .btn-delete-row {
+      background: var(--danger);
+      color: white;
+      border: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.7rem;
+    }
+
+    /* CONFIGURACIÓN PARA IMPRESIÓN (PDF / FÍSICO) */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .control-panel, .btn-delete-row, th.col-action, td.col-action {
+        display: none !important;
+      }
+      .sheet-page {
+        box-shadow: none;
+        margin: 0;
+        padding: 20mm 15mm;
+        width: 100%;
+        max-width: none;
+      }
+      .page-break {
+        border-top: none;
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BARRA DE HERRAMIENTAS Y FILTROS -->
+  <div class="control-panel">
+    <div class="status-bar">
+      <div class="status-text" id="statusMessage">
+        <i class="fa-solid fa-circle-check" style="color: #28a745;"></i>
+        <span>Conectando con Google Sheets...</span>
+      </div>
+      <button class="btn-sync" onclick="loadDriveData()">
+        <i class="fa-solid fa-arrows-rotate"></i> Sincronizar desde Drive
+      </button>
+    </div>
+
+    <div class="filters-grid">
+      <div class="filter-item">
+        <label>1. Filtrar por Sede:</label>
+        <select id="filterSede" onchange="onFilterChange('sede')">
+          <option value="">-- TODAS LAS SEDES --</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>2. Filtrar por Gerencia:</label>
+        <select id="filterGerencia" onchange="onFilterChange('gerencia')">
+          <option value="">-- TODAS LAS GERENCIAS --</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>3. Filtrar por Área:</label>
+        <select id="filterArea" onchange="onFilterChange('area')">
+          <option value="">-- TODAS LAS ÁREAS --</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>4. Filtrar por Sub Área:</label>
+        <select id="filterSubArea" onchange="onFilterChange('subarea')">
+          <option value="">-- TODAS LAS SUB ÁREAS --</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions-bar">
+      <button class="btn btn-green" onclick="addNewRow()"><i class="fa-solid fa-plus"></i> Agregar Fila</button>
+      <button class="btn btn-blue" id="btnSort" onclick="toggleSort()"><i class="fa-solid fa-arrow-down-a-z"></i> <span id="sortLabel">Ordenar Z-A (Nombres)</span></button>
+      <button class="btn btn-orange" onclick="clearTable()"><i class="fa-solid fa-eraser"></i> Limpiar Reporte</button>
+      <button class="btn btn-gray" onclick="restoreOriginalData()"><i class="fa-solid fa-rotate-left"></i> Restaurar (<span id="totalBadge">0</span> Equipos)</button>
+      <button class="btn btn-red" onclick="window.print()"><i class="fa-solid fa-print"></i> Vista previa de Impresión</button>
+    </div>
+  </div>
+
+  <!-- PÁGINA 1: FICHA TÉCNICA PRINCIPAL -->
+  <div class="sheet-page">
+    <div class="doc-header">
+      <h2>FICHA TÉCNICA DE MANTENIMIENTO DE EQUIPOS DE CÓMPUTO</h2>
+      <p>OFICINA GENERAL DE ADMINISTRACIÓN - OFICINA GENERAL DE TECNOLOGÍAS DE LA INFORMACIÓN</p>
+    </div>
+
+    <table class="meta-table">
+      <tr>
+        <td class="label-col">Código Patrimonial:</td>
+        <td class="value-col">SE ADJUNTA ANEXO CON RELACIÓN DE EQUIPOS</td>
+      </tr>
+      <tr>
+        <td class="label-col">Sede Institucional:</td>
+        <td class="value-col" id="docSede">SEDE CENTRAL</td>
+      </tr>
+      <tr>
+        <td class="label-col">Gerencia / Dirección:</td>
+        <td class="value-col" id="docGerencia">TODAS LAS GERENCIAS / DIRECCIONES</td>
+      </tr>
+      <tr>
+        <td class="label-col">Área Usuaria:</td>
+        <td class="value-col" id="docArea">TODAS LAS ÁREAS</td>
+      </tr>
+      <tr>
+        <td class="label-col">Sub Área:</td>
+        <td class="value-col" id="docSubArea">GENERAL</td>
+      </tr>
+      <tr>
+        <td class="label-col">Marca / Modelo:</td>
+        <td class="value-col">SE ADJUNTA ANEXO CON RELACIÓN DE EQUIPOS (CPU / LAPTOPS)</td>
+      </tr>
+      <tr>
+        <td class="label-col">Fecha de Mantenimiento:</td>
+        <td class="value-col editable-cell" contenteditable="true" id="docFecha">29 DE SEPTIEMBRE 2026</td>
+      </tr>
+      <tr>
+        <td class="label-col">Tipo de Mantenimiento:</td>
+        <td class="value-col">
+          <label style="margin-right: 20px;"><input type="checkbox" checked> Preventivo</label>
+          <label><input type="checkbox"> Correctivo</label>
+        </td>
+      </tr>
+      <tr>
+        <td class="label-col">Actividades Realizadas:</td>
+        <td class="value-col" style="font-size: 0.77rem; line-height: 1.4;">
+          • Mantenimiento de hardware (limpieza externa e interna de chasis, ventiladores y componentes electrónicos).<br>
+          • Mantenimiento de componentes internos (memoria RAM, conectores de fuente, pasta térmica y coolers).<br>
+          • Mantenimiento de software (eliminación de archivos temporales, optimización y actualización del SO).<br>
+          • Inventario y verificación física de periféricos y códigos patrimoniales asociados (CPU, laptop, cargador).
+        </td>
+      </tr>
+      <tr>
+        <td class="label-col">Observaciones:</td>
+        <td class="value-col editable-cell" contenteditable="true">
+          Se procedió con el mantenimiento preventivo programado según el cronograma institucional. Los equipos evaluados de la unidad orgánica quedan totalmente operativos y conformes.
+        </td>
+      </tr>
+    </table>
+
+    <!-- FIRMAS -->
+    <div class="signatures">
+      <div class="signature-box">
+        <div class="sig-line"></div>
+        <div class="sig-name" contenteditable="true" id="sigTechName">MANUEL RIVERA VALVERDE</div>
+        <div class="sig-role" contenteditable="true">Firma del Técnico Especialista (OGTI)</div>
+      </div>
+      <div class="signature-box">
+        <div class="sig-line"></div>
+        <div class="sig-name" contenteditable="true" id="sigUserName">RESPONSABLE DEL ÁREA</div>
+        <div class="sig-role" contenteditable="true">Firma del Usuario y/o Responsable del Área</div>
+      </div>
+    </div>
+
+    <!-- PÁGINA 2: ANEXO DE RELACIÓN DE EQUIPOS -->
+    <div class="page-break">
+      <div class="anexo-header">
+        <h3>ANEXO - MANTENIMIENTO DE EQUIPOS DE CÓMPUTO (CPU / LAPTOPS)</h3>
+        <p>Relación de equipos intervenidos (<span id="anexoCount">0</span> registros) · <span id="anexoSortState">Ordenado por Nombres y Apellidos (A-Z)</span></p>
+      </div>
+
+      <table class="devices-table">
+        <thead>
+          <tr>
+            <th style="width: 30px;">Nº</th>
+            <th>USUARIO RESPONSABLE 1</th>
+            <th>SEDE</th>
+            <th>MARCA</th>
+            <th>MODELO</th>
+            <th>CÓDIGO PATRIMONIAL</th>
+            <th>MODALIDAD</th>
+            <th>SERIE</th>
+            <th class="col-action" style="width: 35px;">ACCIÓN</th>
+          </tr>
+        </thead>
+        <tbody id="devicesTableBody">
+          <!-- Filas generadas dinámicamente -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // URL PÚBLICA DEL GOOGLE SPREADSHEET (ID y GID extraídos de tu enlace)
+    const SHEET_ID = '1qlwd9r6LtnuVwoiSHuSU03_5FvWPIz5k';
+    const GID = '1712555090';
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+
+    let rawData = [];
+    let currentRows = [];
+    let sortAsc = true;
+
+    // Normalizador de claves de columnas
+    function cleanKey(k) {
+      return k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    // CARGA DE DATOS DESDE GOOGLE DRIVE
+    function loadDriveData() {
+      const status = document.getElementById('statusMessage');
+      status.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#fd7e14;"></i> Sincronizando con Drive...`;
+
+      Papa.parse(CSV_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          if (!results.data || results.data.length === 0) {
+            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error: La hoja no tiene datos o permisos insuficientes.`;
+            return;
+          }
+
+          // Mapeo flexible de columnas para adaptarse a las cabeceras del Sheet
+          rawData = results.data.map(item => {
+            const mapped = {};
+            for (let rawKey in item) {
+              const ck = cleanKey(rawKey);
+              if (ck.includes('SEDE')) mapped.sede = item[rawKey]?.trim() || '';
+              else if (ck.includes('GERENCIA') || ck.includes('DIRECCION')) mapped.gerencia = item[rawKey]?.trim() || '';
+              else if (ck.includes('SUB') && ck.includes('AREA')) mapped.subarea = item[rawKey]?.trim() || '';
+              else if (ck.includes('AREA')) mapped.area = item[rawKey]?.trim() || '';
+              else if (ck.includes('USUARIO') || ck.includes('RESPONSABLE')) mapped.usuario = item[rawKey]?.trim() || '';
+              else if (ck.includes('MARCA')) mapped.marca = item[rawKey]?.trim() || '';
+              else if (ck.includes('MODELO')) mapped.modelo = item[rawKey]?.trim() || '';
+              else if (ck.includes('PATRIMONIAL') || ck.includes('CODIGO')) mapped.patrimonial = item[rawKey]?.trim() || '';
+              else if (ck.includes('MODALIDAD')) mapped.modalidad = item[rawKey]?.trim() || '';
+              else if (ck.includes('SERIE')) mapped.serie = item[rawKey]?.trim() || '';
+            }
+            return {
+              usuario: mapped.usuario || item['USUARIO'] || '',
+              sede: mapped.sede || item['SEDE'] || '',
+              gerencia: mapped.gerencia || item['GERENCIA'] || '',
+              area: mapped.area || item['AREA'] || '',
+              subarea: mapped.subarea || item['SUB_AREA'] || '',
+              marca: mapped.marca || item['MARCA'] || '',
+              modelo: mapped.modelo || item['MODELO'] || '',
+              patrimonial: mapped.patrimonial || item['CODIGO_PATRIMONIAL'] || '',
+              modalidad: mapped.modalidad || item['MODALIDAD'] || 'CAS',
+              serie: mapped.serie || item['SERIE'] || ''
+            };
+          }).filter(r => r.usuario || r.patrimonial);
+
+          document.getElementById('totalBadge').innerText = rawData.length;
+          status.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #28a745;"></i> Conexión Exitosa con Drive: Se cargaron ${rawData.length} equipos en vivo`;
+          
+          populateFilters();
+          applyFilters();
+        },
+        error: function(err) {
+          status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al conectar con Drive. Asegúrese de que el archivo esté compartido.`;
+        }
+      });
+    }
+
+    // LLENAR SELECTS
+    function populateFilters() {
+      const getUnique = (key) => [...new Set(rawData.map(d => d[key]).filter(Boolean))].sort();
+
+      fillSelect('filterSede', getUnique('sede'), '-- TODAS LAS SEDES --');
+      fillSelect('filterGerencia', getUnique('gerencia'), '-- TODAS LAS GERENCIAS --');
+      fillSelect('filterArea', getUnique('area'), '-- TODAS LAS ÁREAS --');
+      fillSelect('filterSubArea', getUnique('subarea'), '-- TODAS LAS SUB ÁREAS --');
+    }
+
+    function fillSelect(elemId, list, defaultLabel) {
+      const select = document.getElementById(elemId);
+      const currentVal = select.value;
+      select.innerHTML = `<option value="">${defaultLabel}</option>`;
+      list.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item;
+        opt.textContent = item;
+        select.appendChild(opt);
+      });
+      if (list.includes(currentVal)) select.value = currentVal;
+    }
+
+    // APLICAR FILTROS
+    function applyFilters() {
+      const sede = document.getElementById('filterSede').value;
+      const gerencia = document.getElementById('filterGerencia').value;
+      const area = document.getElementById('filterArea').value;
+      const subarea = document.getElementById('filterSubArea').value;
+
+      // Actualizar ficha institucional
+      document.getElementById('docSede').innerText = sede || 'SEDE CENTRAL';
+      document.getElementById('docGerencia').innerText = gerencia || 'TODAS LAS GERENCIAS / DIRECCIONES';
+      document.getElementById('docArea').innerText = area || 'TODAS LAS ÁREAS';
+      document.getElementById('docSubArea').innerText = subarea || 'GENERAL';
+
+      // Filtrar filas
+      currentRows = rawData.filter(d => {
+        return (!sede || d.sede === sede) &&
+               (!gerencia || d.gerencia === gerencia) &&
+               (!area || d.area === area) &&
+               (!subarea || d.subarea === subarea);
+      });
+
+      // Si hay un usuario filtrado, sugerirlo como responsable
+      if (currentRows.length > 0 && currentRows[0].usuario) {
+        document.getElementById('sigUserName').innerText = currentRows[0].usuario;
+      }
+
+      renderTable();
+    }
+
+    function onFilterChange(source) {
+      applyFilters();
+    }
+
+    // RENDERIZAR TABLA DE ANEXO
+    function renderTable() {
+      const tbody = document.getElementById('devicesTableBody');
+      tbody.innerHTML = '';
+
+      currentRows.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td class="text-left editable-cell" contenteditable="true" onblur="currentRows[${index}].usuario = this.innerText">${row.usuario}</td>
+          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].sede = this.innerText">${row.sede}</td>
+          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].marca = this.innerText">${row.marca}</td>
+          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].modelo = this.innerText">${row.modelo}</td>
+          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].patrimonial = this.innerText">${row.patrimonial}</td>
+          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].modalidad = this.innerText">${row.modalidad}</td>
+          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].serie = this.innerText">${row.serie}</td>
+          <td class="col-action">
+            <button class="btn-delete-row" title="Eliminar registro" onclick="deleteRow(${index})"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('anexoCount').innerText = currentRows.length;
+    }
+
+    // ELIMINAR FILA
+    function deleteRow(idx) {
+      currentRows.splice(idx, 1);
+      renderTable();
+    }
+
+    // AGREGAR FILA VACÍA MANUALMENTE
+    function addNewRow() {
+      currentRows.unshift({
+        usuario: 'NUEVO USUARIO',
+        sede: document.getElementById('filterSede').value || 'SEDE CENTRAL',
+        marca: '',
+        modelo: '',
+        patrimonial: '',
+        modalidad: 'CAS',
+        serie: ''
+      });
+      renderTable();
+    }
+
+    // ORDENAR ALFABÉTICAMENTE
+    function toggleSort() {
+      sortAsc = !sortAsc;
+      currentRows.sort((a, b) => {
+        const uA = (a.usuario || '').toLowerCase();
+        const uB = (b.usuario || '').toLowerCase();
+        return sortAsc ? uA.localeCompare(uB) : uB.localeCompare(uA);
+      });
+      document.getElementById('sortLabel').innerText = sortAsc ? 'Ordenar Z-A (Nombres)' : 'Ordenar A-Z (Nombres)';
+      document.getElementById('anexoSortState').innerText = `Ordenado por Nombres y Apellidos (${sortAsc ? 'A-Z' : 'Z-A'})`;
+      renderTable();
+    }
+
+    // LIMPIAR TABLA
+    function clearTable() {
+      if (confirm('¿Desea limpiar todas las filas de la tabla de reporte?')) {
+        currentRows = [];
+        renderTable();
+      }
+    }
+
+    // RESTAURAR
+    function restoreOriginalData() {
+      document.getElementById('filterSede').value = '';
+      document.getElementById('filterGerencia').value = '';
+      document.getElementById('filterArea').value = '';
+      document.getElementById('filterSubArea').value = '';
+      applyFilters();
+    }
+
+    // Iniciar carga al abrir la página
+    window.addEventListener('DOMContentLoaded', loadDriveData);
+  </script>
+</body>
+</html>
