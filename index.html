@@ -17,7 +17,6 @@
       --warning: #fd7e14;
       --dark: #212529;
       --light-bg: #f4f6f9;
-      --border-color: #000;
     }
 
     * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
@@ -115,7 +114,13 @@
       padding: 40px 50px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
     }
+    .first-page {
+      min-height: 980px; /* Asegura espacio vertical en pantalla y vista previa */
+    }
+
     .doc-header {
       text-align: center;
       margin-bottom: 25px;
@@ -154,19 +159,19 @@
       width: 75%;
     }
 
-    /* SECCIÓN DE FIRMAS */
+    /* SECCIÓN DE FIRMAS CENTRADA EN ESPACIO SOBRANTE */
     .signatures {
       display: flex;
-      justify-content: space-between;
-      margin-top: 50px;
-      padding: 0 30px;
+      justify-content: space-around;
+      margin-top: auto; /* Empuja las firmas hacia abajo en el espacio blanco */
+      padding: 90px 40px 30px;
     }
     .signature-box {
       width: 42%;
       text-align: center;
     }
     .sig-line {
-      border-top: 1px solid #000;
+      border-top: 1.5px solid #000;
       margin-bottom: 8px;
     }
     .sig-name {
@@ -184,9 +189,9 @@
     /* PÁGINA ANEXO */
     .page-break {
       page-break-before: always;
-      margin-top: 40px;
-      padding-top: 25px;
-      border-top: 1px dashed #bbb;
+      break-before: page;
+      margin-top: 30px;
+      padding-top: 20px;
     }
     .anexo-header {
       text-align: center;
@@ -240,8 +245,12 @@
       font-size: 0.7rem;
     }
 
-    /* CONFIGURACIÓN PARA IMPRESIÓN (PDF / FÍSICO) */
+    /* CONFIGURACIÓN PARA IMPRESIÓN */
     @media print {
+      @page {
+        size: A4 portrait;
+        margin: 15mm 12mm;
+      }
       body { background: #fff; padding: 0; }
       .control-panel, .btn-delete-row, th.col-action, td.col-action {
         display: none !important;
@@ -249,13 +258,20 @@
       .sheet-page {
         box-shadow: none;
         margin: 0;
-        padding: 20mm 15mm;
+        padding: 0;
         width: 100%;
         max-width: none;
       }
+      .first-page {
+        min-height: 255mm; /* Altura A4 exacta para que las firmas queden abajo */
+      }
+      .signatures {
+        margin-top: auto !important;
+        padding-bottom: 15mm !important;
+      }
       .page-break {
-        border-top: none;
-        page-break-before: always;
+        page-break-before: always !important;
+        break-before: page !important;
       }
     }
   </style>
@@ -266,8 +282,8 @@
   <div class="control-panel">
     <div class="status-bar">
       <div class="status-text" id="statusMessage">
-        <i class="fa-solid fa-circle-check" style="color: #28a745;"></i>
-        <span>Conectando con Google Sheets...</span>
+        <i class="fa-solid fa-spinner fa-spin" style="color: #fd7e14;"></i>
+        <span>Sincronizando con Drive...</span>
       </div>
       <button class="btn-sync" onclick="loadDriveData()">
         <i class="fa-solid fa-arrows-rotate"></i> Sincronizar desde Drive
@@ -277,25 +293,25 @@
     <div class="filters-grid">
       <div class="filter-item">
         <label>1. Filtrar por Sede:</label>
-        <select id="filterSede" onchange="onFilterChange('sede')">
+        <select id="filterSede" onchange="onSedeChange()">
           <option value="">-- TODAS LAS SEDES --</option>
         </select>
       </div>
       <div class="filter-item">
         <label>2. Filtrar por Gerencia:</label>
-        <select id="filterGerencia" onchange="onFilterChange('gerencia')">
+        <select id="filterGerencia" onchange="onGerenciaChange()">
           <option value="">-- TODAS LAS GERENCIAS --</option>
         </select>
       </div>
       <div class="filter-item">
         <label>3. Filtrar por Área:</label>
-        <select id="filterArea" onchange="onFilterChange('area')">
+        <select id="filterArea" onchange="onAreaChange()">
           <option value="">-- TODAS LAS ÁREAS --</option>
         </select>
       </div>
       <div class="filter-item">
         <label>4. Filtrar por Sub Área:</label>
-        <select id="filterSubArea" onchange="onFilterChange('subarea')">
+        <select id="filterSubArea" onchange="onSubAreaChange()">
           <option value="">-- TODAS LAS SUB ÁREAS --</option>
         </select>
       </div>
@@ -311,7 +327,7 @@
   </div>
 
   <!-- PÁGINA 1: FICHA TÉCNICA PRINCIPAL -->
-  <div class="sheet-page">
+  <div class="sheet-page first-page">
     <div class="doc-header">
       <h2>FICHA TÉCNICA DE MANTENIMIENTO DE EQUIPOS DE CÓMPUTO</h2>
       <p>OFICINA GENERAL DE ADMINISTRACIÓN - OFICINA GENERAL DE TECNOLOGÍAS DE LA INFORMACIÓN</p>
@@ -324,7 +340,7 @@
       </tr>
       <tr>
         <td class="label-col">Sede Institucional:</td>
-        <td class="value-col" id="docSede">SEDE CENTRAL</td>
+        <td class="value-col" id="docSede">TODAS LAS SEDES (INSTITUCIONAL)</td>
       </tr>
       <tr>
         <td class="label-col">Gerencia / Dirección:</td>
@@ -370,7 +386,7 @@
       </tr>
     </table>
 
-    <!-- FIRMAS -->
+    <!-- FIRMAS ALINEADAS AL FONDO -->
     <div class="signatures">
       <div class="signature-box">
         <div class="sig-line"></div>
@@ -379,55 +395,51 @@
       </div>
       <div class="signature-box">
         <div class="sig-line"></div>
-        <div class="sig-name" contenteditable="true" id="sigUserName">RESPONSABLE DEL ÁREA</div>
+        <div class="sig-name" contenteditable="true" id="sigUserName">FIRMA DEL RESPONSABLE</div>
         <div class="sig-role" contenteditable="true">Firma del Usuario y/o Responsable del Área</div>
       </div>
     </div>
+  </div>
 
-    <!-- PÁGINA 2: ANEXO DE RELACIÓN DE EQUIPOS -->
-    <div class="page-break">
-      <div class="anexo-header">
-        <h3>ANEXO - MANTENIMIENTO DE EQUIPOS DE CÓMPUTO (CPU / LAPTOPS)</h3>
-        <p>Relación de equipos intervenidos (<span id="anexoCount">0</span> registros) · <span id="anexoSortState">Ordenado por Nombres y Apellidos (A-Z)</span></p>
-      </div>
-
-      <table class="devices-table">
-        <thead>
-          <tr>
-            <th style="width: 30px;">Nº</th>
-            <th>USUARIO RESPONSABLE 1</th>
-            <th>SEDE</th>
-            <th>MARCA</th>
-            <th>MODELO</th>
-            <th>CÓDIGO PATRIMONIAL</th>
-            <th>MODALIDAD</th>
-            <th>SERIE</th>
-            <th class="col-action" style="width: 35px;">ACCIÓN</th>
-          </tr>
-        </thead>
-        <tbody id="devicesTableBody">
-          <!-- Filas generadas dinámicamente -->
-        </tbody>
-      </table>
+  <!-- PÁGINA 2: ANEXO DE RELACIÓN DE EQUIPOS -->
+  <div class="sheet-page page-break">
+    <div class="anexo-header">
+      <h3>ANEXO - MANTENIMIENTO DE EQUIPOS DE CÓMPUTO (CPU / LAPTOPS)</h3>
+      <p>Relación de equipos intervenidos (<span id="anexoCount">0</span> registros) · <span id="anexoSortState">Ordenado por Nombres y Apellidos (A-Z)</span></p>
     </div>
+
+    <table class="devices-table">
+      <thead>
+        <tr>
+          <th style="width: 30px;">Nº</th>
+          <th>USUARIO RESPONSABLE 1</th>
+          <th>SEDE</th>
+          <th>MARCA</th>
+          <th>MODELO</th>
+          <th>CÓDIGO PATRIMONIAL</th>
+          <th>MODALIDAD</th>
+          <th>SERIE</th>
+          <th class="col-action" style="width: 35px;">ACCIÓN</th>
+        </tr>
+      </thead>
+      <tbody id="devicesTableBody">
+        <!-- Filas generadas dinámicamente -->
+      </tbody>
+    </table>
   </div>
 
   <script>
-    // URL PÚBLICA DEL GOOGLE SPREADSHEET (ID y GID extraídos de tu enlace)
-    const SHEET_ID = '1qlwd9r6LtnuVwoiSHuSU03_5FvWPIz5k';
-    const GID = '1712555090';
+    // URL PÚBLICA DEL CSV DE GOOGLE DRIVE
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSvXAXZSTkNElot1kH6ihjoN3shMAQXNmulqFnDIDrpY7_sUKChcOTBoc2yNy-SBzZPAveB9aM6jRdq/pub?output=csv';
 
     let rawData = [];
     let currentRows = [];
     let sortAsc = true;
 
-    // Normalizador de claves de columnas
     function cleanKey(k) {
-      return k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return (k || '').trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
 
-    // CARGA DE DATOS DESDE GOOGLE DRIVE
     function loadDriveData() {
       const status = document.getElementById('statusMessage');
       status.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#fd7e14;"></i> Sincronizando con Drive...`;
@@ -438,19 +450,18 @@
         skipEmptyLines: true,
         complete: function(results) {
           if (!results.data || results.data.length === 0) {
-            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error: La hoja no tiene datos o permisos insuficientes.`;
+            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error: Hoja sin datos.`;
             return;
           }
 
-          // Mapeo flexible de columnas para adaptarse a las cabeceras del Sheet
           rawData = results.data.map(item => {
             const mapped = {};
             for (let rawKey in item) {
               const ck = cleanKey(rawKey);
-              if (ck.includes('SEDE')) mapped.sede = item[rawKey]?.trim() || '';
+              if (ck === 'SEDE') mapped.sede = item[rawKey]?.trim() || '';
               else if (ck.includes('GERENCIA') || ck.includes('DIRECCION')) mapped.gerencia = item[rawKey]?.trim() || '';
               else if (ck.includes('SUB') && ck.includes('AREA')) mapped.subarea = item[rawKey]?.trim() || '';
-              else if (ck.includes('AREA')) mapped.area = item[rawKey]?.trim() || '';
+              else if (ck === 'AREA') mapped.area = item[rawKey]?.trim() || '';
               else if (ck.includes('USUARIO') || ck.includes('RESPONSABLE')) mapped.usuario = item[rawKey]?.trim() || '';
               else if (ck.includes('MARCA')) mapped.marca = item[rawKey]?.trim() || '';
               else if (ck.includes('MODELO')) mapped.modelo = item[rawKey]?.trim() || '';
@@ -459,44 +470,41 @@
               else if (ck.includes('SERIE')) mapped.serie = item[rawKey]?.trim() || '';
             }
             return {
-              usuario: mapped.usuario || item['USUARIO'] || '',
-              sede: mapped.sede || item['SEDE'] || '',
-              gerencia: mapped.gerencia || item['GERENCIA'] || '',
-              area: mapped.area || item['AREA'] || '',
-              subarea: mapped.subarea || item['SUB_AREA'] || '',
-              marca: mapped.marca || item['MARCA'] || '',
-              modelo: mapped.modelo || item['MODELO'] || '',
-              patrimonial: mapped.patrimonial || item['CODIGO_PATRIMONIAL'] || '',
-              modalidad: mapped.modalidad || item['MODALIDAD'] || 'CAS',
-              serie: mapped.serie || item['SERIE'] || ''
+              usuario: mapped.usuario || '',
+              sede: mapped.sede || '',
+              gerencia: mapped.gerencia || '',
+              area: mapped.area || '',
+              subarea: mapped.subarea || '',
+              marca: mapped.marca || '',
+              modelo: mapped.modelo || '',
+              patrimonial: mapped.patrimonial || '',
+              modalidad: mapped.modalidad || 'CAS',
+              serie: mapped.serie || ''
             };
           }).filter(r => r.usuario || r.patrimonial);
 
           document.getElementById('totalBadge').innerText = rawData.length;
           status.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #28a745;"></i> Conexión Exitosa con Drive: Se cargaron ${rawData.length} equipos en vivo`;
-          
-          populateFilters();
+
+          initSedeFilter();
+          updateCascadingFilters(1);
           applyFilters();
         },
         error: function(err) {
-          status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al conectar con Drive. Asegúrese de que el archivo esté compartido.`;
+          status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al conectar con Drive.`;
         }
       });
     }
 
-    // LLENAR SELECTS
-    function populateFilters() {
-      const getUnique = (key) => [...new Set(rawData.map(d => d[key]).filter(Boolean))].sort();
-
-      fillSelect('filterSede', getUnique('sede'), '-- TODAS LAS SEDES --');
-      fillSelect('filterGerencia', getUnique('gerencia'), '-- TODAS LAS GERENCIAS --');
-      fillSelect('filterArea', getUnique('area'), '-- TODAS LAS ÁREAS --');
-      fillSelect('filterSubArea', getUnique('subarea'), '-- TODAS LAS SUB ÁREAS --');
+    // INICIALIZAR PRIMER FILTRO (SEDES)
+    function initSedeFilter() {
+      const sedes = [...new Set(rawData.map(d => d.sede).filter(Boolean))].sort();
+      fillSelect('filterSede', sedes, '-- TODAS LAS SEDES --');
     }
 
     function fillSelect(elemId, list, defaultLabel) {
       const select = document.getElementById(elemId);
-      const currentVal = select.value;
+      const prevVal = select.value;
       select.innerHTML = `<option value="">${defaultLabel}</option>`;
       list.forEach(item => {
         const opt = document.createElement('option');
@@ -504,23 +512,80 @@
         opt.textContent = item;
         select.appendChild(opt);
       });
-      if (list.includes(currentVal)) select.value = currentVal;
+      if (list.includes(prevVal)) {
+        select.value = prevVal;
+      }
     }
 
-    // APLICAR FILTROS
+    // FILTROS EN CASCADA DEPENDIENTES (1 -> 2 -> 3 -> 4)
+    function updateCascadingFilters(fromLevel) {
+      const sede = document.getElementById('filterSede').value;
+      const gerencia = document.getElementById('filterGerencia').value;
+      const area = document.getElementById('filterArea').value;
+
+      if (fromLevel <= 1) {
+        // Datos filtrados solo por sede
+        const dataForGerencia = rawData.filter(d => !sede || d.sede === sede);
+        const gerencias = [...new Set(dataForGerencia.map(d => d.gerencia).filter(Boolean))].sort();
+        fillSelect('filterGerencia', gerencias, '-- TODAS LAS GERENCIAS --');
+      }
+
+      if (fromLevel <= 2) {
+        const currentGerencia = document.getElementById('filterGerencia').value;
+        const dataForArea = rawData.filter(d => (!sede || d.sede === sede) && (!currentGerencia || d.gerencia === currentGerencia));
+        const areas = [...new Set(dataForArea.map(d => d.area).filter(Boolean))].sort();
+        fillSelect('filterArea', areas, '-- TODAS LAS ÁREAS --');
+      }
+
+      if (fromLevel <= 3) {
+        const currentGerencia = document.getElementById('filterGerencia').value;
+        const currentArea = document.getElementById('filterArea').value;
+        const dataForSubArea = rawData.filter(d => (!sede || d.sede === sede) && (!currentGerencia || d.gerencia === currentGerencia) && (!currentArea || d.area === currentArea));
+        const subareas = [...new Set(dataForSubArea.map(d => d.subarea).filter(Boolean))].sort();
+        fillSelect('filterSubArea', subareas, '-- TODAS LAS SUB ÁREAS --');
+      }
+    }
+
+    function onSedeChange() {
+      // Al cambiar sede, reseteamos los filtros inferiores
+      document.getElementById('filterGerencia').value = '';
+      document.getElementById('filterArea').value = '';
+      document.getElementById('filterSubArea').value = '';
+      updateCascadingFilters(1);
+      applyFilters();
+    }
+
+    function onGerenciaChange() {
+      document.getElementById('filterArea').value = '';
+      document.getElementById('filterSubArea').value = '';
+      updateCascadingFilters(2);
+      applyFilters();
+    }
+
+    function onAreaChange() {
+      document.getElementById('filterSubArea').value = '';
+      updateCascadingFilters(3);
+      applyFilters();
+    }
+
+    function onSubAreaChange() {
+      applyFilters();
+    }
+
+    // APLICAR FILTROS Y ACTUALIZAR TEXTOS
     function applyFilters() {
       const sede = document.getElementById('filterSede').value;
       const gerencia = document.getElementById('filterGerencia').value;
       const area = document.getElementById('filterArea').value;
       const subarea = document.getElementById('filterSubArea').value;
 
-      // Actualizar ficha institucional
-      document.getElementById('docSede').innerText = sede || 'SEDE CENTRAL';
+      // Actualizar encabezados de la ficha técnica
+      document.getElementById('docSede').innerText = sede || 'TODAS LAS SEDES (INSTITUCIONAL)';
       document.getElementById('docGerencia').innerText = gerencia || 'TODAS LAS GERENCIAS / DIRECCIONES';
       document.getElementById('docArea').innerText = area || 'TODAS LAS ÁREAS';
       document.getElementById('docSubArea').innerText = subarea || 'GENERAL';
 
-      // Filtrar filas
+      // Filtrar la lista de registros
       currentRows = rawData.filter(d => {
         return (!sede || d.sede === sede) &&
                (!gerencia || d.gerencia === gerencia) &&
@@ -528,19 +593,16 @@
                (!subarea || d.subarea === subarea);
       });
 
-      // Si hay un usuario filtrado, sugerirlo como responsable
+      // Actualizar firma del usuario sugerido
       if (currentRows.length > 0 && currentRows[0].usuario) {
         document.getElementById('sigUserName').innerText = currentRows[0].usuario;
+      } else {
+        document.getElementById('sigUserName').innerText = 'FIRMA DEL RESPONSABLE';
       }
 
       renderTable();
     }
 
-    function onFilterChange(source) {
-      applyFilters();
-    }
-
-    // RENDERIZAR TABLA DE ANEXO
     function renderTable() {
       const tbody = document.getElementById('devicesTableBody');
       tbody.innerHTML = '';
@@ -566,13 +628,11 @@
       document.getElementById('anexoCount').innerText = currentRows.length;
     }
 
-    // ELIMINAR FILA
     function deleteRow(idx) {
       currentRows.splice(idx, 1);
       renderTable();
     }
 
-    // AGREGAR FILA VACÍA MANUALMENTE
     function addNewRow() {
       currentRows.unshift({
         usuario: 'NUEVO USUARIO',
@@ -586,7 +646,6 @@
       renderTable();
     }
 
-    // ORDENAR ALFABÉTICAMENTE
     function toggleSort() {
       sortAsc = !sortAsc;
       currentRows.sort((a, b) => {
@@ -599,7 +658,6 @@
       renderTable();
     }
 
-    // LIMPIAR TABLA
     function clearTable() {
       if (confirm('¿Desea limpiar todas las filas de la tabla de reporte?')) {
         currentRows = [];
@@ -607,16 +665,13 @@
       }
     }
 
-    // RESTAURAR
     function restoreOriginalData() {
       document.getElementById('filterSede').value = '';
-      document.getElementById('filterGerencia').value = '';
-      document.getElementById('filterArea').value = '';
-      document.getElementById('filterSubArea').value = '';
+      initSedeFilter();
+      updateCascadingFilters(1);
       applyFilters();
     }
 
-    // Iniciar carga al abrir la página
     window.addEventListener('DOMContentLoaded', loadDriveData);
   </script>
 </body>
