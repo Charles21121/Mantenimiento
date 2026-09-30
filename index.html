@@ -454,21 +454,35 @@
             return;
           }
 
-          rawData = results.data.map(item => {
+rawData = results.data.map(item => {
             const mapped = {};
             for (let rawKey in item) {
               const ck = cleanKey(rawKey);
-              if (ck === 'SEDE') mapped.sede = item[rawKey]?.trim() || '';
-              else if (ck.includes('GERENCIA') || ck.includes('DIRECCION')) mapped.gerencia = item[rawKey]?.trim() || '';
-              else if (ck.includes('SUB') && ck.includes('AREA')) mapped.subarea = item[rawKey]?.trim() || '';
-              else if (ck === 'AREA') mapped.area = item[rawKey]?.trim() || '';
-              else if (ck.includes('USUARIO') || ck.includes('RESPONSABLE')) mapped.usuario = item[rawKey]?.trim() || '';
-              else if (ck.includes('MARCA')) mapped.marca = item[rawKey]?.trim() || '';
-              else if (ck.includes('MODELO')) mapped.modelo = item[rawKey]?.trim() || '';
-              else if (ck.includes('PATRIMONIAL') || ck.includes('CODIGO')) mapped.patrimonial = item[rawKey]?.trim() || '';
-              else if (ck.includes('MODALIDAD')) mapped.modalidad = item[rawKey]?.trim() || '';
-              else if (ck.includes('SERIE')) mapped.serie = item[rawKey]?.trim() || '';
+              const val = (item[rawKey] || '').trim();
+
+              if (ck === 'SEDE') mapped.sede = val || mapped.sede;
+              else if (ck.includes('GERENCIA') || ck.includes('DIRECCION')) mapped.gerencia = val || mapped.gerencia;
+              else if (ck.includes('SUB') && ck.includes('AREA')) mapped.subarea = val || mapped.subarea;
+              else if (ck === 'AREA') mapped.area = val || mapped.area;
+              else if (ck.includes('USUARIO') || ck.includes('RESPONSABLE')) mapped.usuario = val || mapped.usuario;
+              else if (ck.includes('MARCA')) mapped.marca = val || mapped.marca;
+              else if (ck.includes('MODELO')) mapped.modelo = val || mapped.modelo;
+              else if (ck.includes('MODALIDAD')) mapped.modalidad = val || mapped.modalidad;
+              else if (ck.includes('SERIE')) mapped.serie = val || mapped.serie;
+
+              // CAPTURA INTELIGENTE DEL CÓDIGO PATRIMONIAL:
+              // Solo asigna si la celda tiene contenido y no es una columna secundaria vacía
+              if (ck.includes('PATRIMONIAL') || ck.includes('PATRIMONIO') || ck.includes('COD_PAT') || ck.includes('COD.PAT')) {
+                if (val && (!mapped.patrimonial || val.startsWith('74'))) {
+                  mapped.patrimonial = val;
+                }
+              } else if (ck.includes('CODIGO') && !ck.includes('BARRA') && !ck.includes('INTERNO')) {
+                if (val && !mapped.patrimonial) {
+                  mapped.patrimonial = val;
+                }
+              }
             }
+
             return {
               usuario: mapped.usuario || '',
               sede: mapped.sede || '',
