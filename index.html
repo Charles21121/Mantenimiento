@@ -118,7 +118,7 @@
       flex-direction: column;
     }
     .first-page {
-      min-height: 980px; /* Asegura espacio vertical en pantalla y vista previa */
+      min-height: 980px;
     }
 
     .doc-header {
@@ -159,11 +159,11 @@
       width: 75%;
     }
 
-    /* SECCIÓN DE FIRMAS CENTRADA EN ESPACIO SOBRANTE */
+    /* SECCIÓN DE FIRMAS */
     .signatures {
       display: flex;
       justify-content: space-around;
-      margin-top: auto; /* Empuja las firmas hacia abajo en el espacio blanco */
+      margin-top: auto;
       padding: 90px 40px 30px;
     }
     .signature-box {
@@ -245,7 +245,7 @@
       font-size: 0.7rem;
     }
 
-    /* CONFIGURACIÓN PARA IMPRESIÓN */
+    /* IMPRESIÓN A4 */
     @media print {
       @page {
         size: A4 portrait;
@@ -263,7 +263,7 @@
         max-width: none;
       }
       .first-page {
-        min-height: 255mm; /* Altura A4 exacta para que las firmas queden abajo */
+        min-height: 255mm;
       }
       .signatures {
         margin-top: auto !important;
@@ -386,7 +386,7 @@
       </tr>
     </table>
 
-    <!-- FIRMAS ALINEADAS AL FONDO -->
+    <!-- FIRMAS -->
     <div class="signatures">
       <div class="signature-box">
         <div class="sig-line"></div>
@@ -423,13 +423,12 @@
         </tr>
       </thead>
       <tbody id="devicesTableBody">
-        <!-- Filas generadas dinámicamente -->
+        <!-- Filas dinámicas -->
       </tbody>
     </table>
   </div>
 
   <script>
-    // URL PÚBLICA DEL CSV DE GOOGLE DRIVE
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSvXAXZSTkNElot1kH6ihjoN3shMAQXNmulqFnDIDrpY7_sUKChcOTBoc2yNy-SBzZPAveB9aM6jRdq/pub?output=csv';
 
     let rawData = [];
@@ -450,11 +449,11 @@
         skipEmptyLines: true,
         complete: function(results) {
           if (!results.data || results.data.length === 0) {
-            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error: Hoja sin datos.`;
+            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error: Hoja sin datos o sin permisos.`;
             return;
           }
 
-rawData = results.data.map(item => {
+          rawData = results.data.map(item => {
             const mapped = {};
             for (let rawKey in item) {
               const ck = cleanKey(rawKey);
@@ -470,12 +469,13 @@ rawData = results.data.map(item => {
               else if (ck.includes('MODALIDAD')) mapped.modalidad = val || mapped.modalidad;
               else if (ck.includes('SERIE')) mapped.serie = val || mapped.serie;
 
-              // CAPTURA DIRECTA DEL CÓDIGO PATRIMONIAL (SBN_CONCILIADO):
+              // CAPTURA DIRECTA DEL CÓDIGO PATRIMONIAL (SBN_CONCILIADO)
               if (ck.includes('SBN') || ck.includes('CONCILIADO') || ck.includes('PATRIMONIAL') || ck.includes('PATRIMONIO')) {
                 if (val && !mapped.patrimonial) {
                   mapped.patrimonial = val;
                 }
               }
+            }
 
             return {
               usuario: mapped.usuario || '',
@@ -504,7 +504,6 @@ rawData = results.data.map(item => {
       });
     }
 
-    // INICIALIZAR PRIMER FILTRO (SEDES)
     function initSedeFilter() {
       const sedes = [...new Set(rawData.map(d => d.sede).filter(Boolean))].sort();
       fillSelect('filterSede', sedes, '-- TODAS LAS SEDES --');
@@ -525,14 +524,12 @@ rawData = results.data.map(item => {
       }
     }
 
-    // FILTROS EN CASCADA DEPENDIENTES (1 -> 2 -> 3 -> 4)
     function updateCascadingFilters(fromLevel) {
       const sede = document.getElementById('filterSede').value;
       const gerencia = document.getElementById('filterGerencia').value;
       const area = document.getElementById('filterArea').value;
 
       if (fromLevel <= 1) {
-        // Datos filtrados solo por sede
         const dataForGerencia = rawData.filter(d => !sede || d.sede === sede);
         const gerencias = [...new Set(dataForGerencia.map(d => d.gerencia).filter(Boolean))].sort();
         fillSelect('filterGerencia', gerencias, '-- TODAS LAS GERENCIAS --');
@@ -555,7 +552,6 @@ rawData = results.data.map(item => {
     }
 
     function onSedeChange() {
-      // Al cambiar sede, reseteamos los filtros inferiores
       document.getElementById('filterGerencia').value = '';
       document.getElementById('filterArea').value = '';
       document.getElementById('filterSubArea').value = '';
@@ -580,20 +576,17 @@ rawData = results.data.map(item => {
       applyFilters();
     }
 
-    // APLICAR FILTROS Y ACTUALIZAR TEXTOS
     function applyFilters() {
       const sede = document.getElementById('filterSede').value;
       const gerencia = document.getElementById('filterGerencia').value;
       const area = document.getElementById('filterArea').value;
       const subarea = document.getElementById('filterSubArea').value;
 
-      // Actualizar encabezados de la ficha técnica
       document.getElementById('docSede').innerText = sede || 'TODAS LAS SEDES (INSTITUCIONAL)';
       document.getElementById('docGerencia').innerText = gerencia || 'TODAS LAS GERENCIAS / DIRECCIONES';
       document.getElementById('docArea').innerText = area || 'TODAS LAS ÁREAS';
       document.getElementById('docSubArea').innerText = subarea || 'GENERAL';
 
-      // Filtrar la lista de registros
       currentRows = rawData.filter(d => {
         return (!sede || d.sede === sede) &&
                (!gerencia || d.gerencia === gerencia) &&
@@ -601,7 +594,6 @@ rawData = results.data.map(item => {
                (!subarea || d.subarea === subarea);
       });
 
-      // Actualizar firma del usuario sugerido
       if (currentRows.length > 0 && currentRows[0].usuario) {
         document.getElementById('sigUserName').innerText = currentRows[0].usuario;
       } else {
