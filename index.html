@@ -470,18 +470,12 @@ rawData = results.data.map(item => {
               else if (ck.includes('MODALIDAD')) mapped.modalidad = val || mapped.modalidad;
               else if (ck.includes('SERIE')) mapped.serie = val || mapped.serie;
 
-              // CAPTURA INTELIGENTE DEL CÓDIGO PATRIMONIAL:
-              // Solo asigna si la celda tiene contenido y no es una columna secundaria vacía
-              if (ck.includes('PATRIMONIAL') || ck.includes('PATRIMONIO') || ck.includes('COD_PAT') || ck.includes('COD.PAT')) {
-                if (val && (!mapped.patrimonial || val.startsWith('74'))) {
-                  mapped.patrimonial = val;
-                }
-              } else if (ck.includes('CODIGO') && !ck.includes('BARRA') && !ck.includes('INTERNO')) {
+              // CAPTURA DIRECTA DEL CÓDIGO PATRIMONIAL (SBN_CONCILIADO):
+              if (ck.includes('SBN') || ck.includes('CONCILIADO') || ck.includes('PATRIMONIAL') || ck.includes('PATRIMONIO')) {
                 if (val && !mapped.patrimonial) {
                   mapped.patrimonial = val;
                 }
               }
-            }
 
             return {
               usuario: mapped.usuario || '',
