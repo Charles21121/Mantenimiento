@@ -25,7 +25,7 @@
     /* PANEL DE CONTROL SUPERIOR */
     .control-panel {
       background: #fff;
-      max-width: 1050px;
+      max-width: 1100px;
       margin: 0 auto 20px;
       padding: 18px 22px;
       border-radius: 8px;
@@ -103,13 +103,14 @@
     .btn-blue { background: #007bff; }
     .btn-orange { background: #fd7e14; }
     .btn-gray { background: #6c757d; }
+    .btn-purple { background: #6f42c1; }
     .btn-red { background: #d32f2f; margin-left: auto; }
 
     /* DOCUMENTO TIPO HOJA A4 */
     .sheet-page {
       background: #fff;
       width: 100%;
-      max-width: 980px;
+      max-width: 1020px;
       margin: 0 auto 30px;
       padding: 40px 50px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -229,21 +230,30 @@
     }
     .editable-cell {
       outline: none;
-      cursor: text;
     }
-    .editable-cell:focus {
-      background-color: #e8f0fe;
+    .editing-row td.editable-cell {
+      background-color: #fff9db !important;
+      border: 1px dashed #fd7e14;
     }
-    .btn-delete-row {
-      background: var(--danger);
-      color: white;
+    .editing-row td.editable-cell:focus {
+      background-color: #e8f0fe !important;
+    }
+    .btn-action-icon {
       border: none;
-      width: 22px;
-      height: 22px;
+      width: 26px;
+      height: 26px;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 0.7rem;
+      font-size: 0.75rem;
+      color: white;
+      margin: 0 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
+    .btn-edit { background: #0d6efd; }
+    .btn-save { background: #198754; display: none; }
+    .btn-del { background: var(--danger); }
 
     /* IMPRESIÓN A4 */
     @media print {
@@ -252,7 +262,7 @@
         margin: 15mm 12mm;
       }
       body { background: #fff; padding: 0; }
-      .control-panel, .btn-delete-row, th.col-action, td.col-action {
+      .control-panel, .btn-action-icon, th.col-action, td.col-action {
         display: none !important;
       }
       .sheet-page {
@@ -321,7 +331,8 @@
       <button class="btn btn-green" onclick="addNewRow()"><i class="fa-solid fa-plus"></i> Agregar Fila</button>
       <button class="btn btn-blue" id="btnSort" onclick="toggleSort()"><i class="fa-solid fa-arrow-down-a-z"></i> <span id="sortLabel">Ordenar Z-A (Nombres)</span></button>
       <button class="btn btn-orange" onclick="clearTable()"><i class="fa-solid fa-eraser"></i> Limpiar Reporte</button>
-      <button class="btn btn-gray" onclick="restoreOriginalData()"><i class="fa-solid fa-rotate-left"></i> Restaurar (<span id="totalBadge">0</span> Equipos)</button>
+      <button class="btn btn-gray" onclick="restoreOriginalData()"><i class="fa-solid fa-rotate-left"></i> Restaurar (<span id="totalBadge">0</span>)</button>
+      <button class="btn btn-purple" onclick="exportEditedCSV()"><i class="fa-solid fa-download"></i> Descargar Datos Editados</button>
       <button class="btn btn-red" onclick="window.print()"><i class="fa-solid fa-print"></i> Vista previa de Impresión</button>
     </div>
   </div>
@@ -360,7 +371,7 @@
       </tr>
       <tr>
         <td class="label-col">Fecha de Mantenimiento:</td>
-        <td class="value-col editable-cell" contenteditable="true" id="docFecha">29 DE SEPTIEMBRE 2026</td>
+        <td class="value-col editable-cell" contenteditable="true" id="docFecha">30 DE SEPTIEMBRE 2026</td>
       </tr>
       <tr>
         <td class="label-col">Tipo de Mantenimiento:</td>
@@ -419,7 +430,7 @@
           <th>CÓDIGO PATRIMONIAL</th>
           <th>MODALIDAD</th>
           <th>SERIE</th>
-          <th class="col-action" style="width: 35px;">ACCIÓN</th>
+          <th class="col-action" style="width: 75px;">ACCIÓN</th>
         </tr>
       </thead>
       <tbody id="devicesTableBody">
@@ -446,7 +457,7 @@
       Papa.parse(CSV_URL, {
         download: true,
         header: true,
-        skipEmptyLines: true,
+        skipEmptyLines: false, // NO descarta filas con campos vacíos
         complete: function(results) {
           if (!results.data || results.data.length === 0) {
             status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error: Hoja sin datos o sin permisos.`;
@@ -459,17 +470,17 @@
               const ck = cleanKey(rawKey);
               const val = (item[rawKey] || '').trim();
 
-              if (ck === 'SEDE') mapped.sede = val || mapped.sede;
-              else if (ck.includes('GERENCIA') || ck.includes('DIRECCION')) mapped.gerencia = val || mapped.gerencia;
-              else if (ck.includes('SUB') && ck.includes('AREA')) mapped.subarea = val || mapped.subarea;
-              else if (ck === 'AREA') mapped.area = val || mapped.area;
-              else if (ck.includes('USUARIO') || ck.includes('RESPONSABLE')) mapped.usuario = val || mapped.usuario;
-              else if (ck.includes('MARCA')) mapped.marca = val || mapped.marca;
-              else if (ck.includes('MODELO')) mapped.modelo = val || mapped.modelo;
-              else if (ck.includes('MODALIDAD')) mapped.modalidad = val || mapped.modalidad;
-              else if (ck.includes('SERIE')) mapped.serie = val || mapped.serie;
+              if (ck === 'SEDE') mapped.sede = val;
+              else if (ck.includes('GERENCIA') || ck.includes('DIRECCION')) mapped.gerencia = val;
+              else if (ck.includes('SUB') && ck.includes('AREA')) mapped.subarea = val;
+              else if (ck === 'AREA') mapped.area = val;
+              else if (ck.includes('USUARIO') || ck.includes('RESPONSABLE')) mapped.usuario = val;
+              else if (ck.includes('MARCA')) mapped.marca = val;
+              else if (ck.includes('MODELO')) mapped.modelo = val;
+              else if (ck.includes('MODALIDAD')) mapped.modalidad = val;
+              else if (ck.includes('SERIE')) mapped.serie = val;
 
-              // CAPTURA DIRECTA DEL CÓDIGO PATRIMONIAL (SBN_CONCILIADO)
+              // Captura de código patrimonial (SBN_CONCILIADO)
               if (ck.includes('SBN') || ck.includes('CONCILIADO') || ck.includes('PATRIMONIAL') || ck.includes('PATRIMONIO')) {
                 if (val && !mapped.patrimonial) {
                   mapped.patrimonial = val;
@@ -486,13 +497,16 @@
               marca: mapped.marca || '',
               modelo: mapped.modelo || '',
               patrimonial: mapped.patrimonial || '',
-              modalidad: mapped.modalidad || 'CAS',
+              modalidad: mapped.modalidad || '',
               serie: mapped.serie || ''
             };
-          }).filter(r => r.usuario || r.patrimonial);
+          }).filter(r => {
+            // Mantiene la fila si tiene al menos UN campo con texto (incluyendo filas donde solo se colocó la SEDE)
+            return r.sede || r.usuario || r.patrimonial || r.marca || r.modelo || r.serie;
+          });
 
           document.getElementById('totalBadge').innerText = rawData.length;
-          status.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #28a745;"></i> Conexión Exitosa con Drive: Se cargaron ${rawData.length} equipos en vivo`;
+          status.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #28a745;"></i> Conexión Exitosa con Drive: Se cargaron ${rawData.length} registros en vivo`;
 
           initSedeFilter();
           updateCascadingFilters(1);
@@ -594,8 +608,9 @@
                (!subarea || d.subarea === subarea);
       });
 
-      if (currentRows.length > 0 && currentRows[0].usuario) {
-        document.getElementById('sigUserName').innerText = currentRows[0].usuario;
+      const validUser = currentRows.find(r => r.usuario && r.usuario.trim() !== '');
+      if (validUser) {
+        document.getElementById('sigUserName').innerText = validUser.usuario;
       } else {
         document.getElementById('sigUserName').innerText = 'FIRMA DEL RESPONSABLE';
       }
@@ -609,17 +624,20 @@
 
       currentRows.forEach((row, index) => {
         const tr = document.createElement('tr');
+        tr.id = `row-${index}`;
         tr.innerHTML = `
           <td>${index + 1}</td>
-          <td class="text-left editable-cell" contenteditable="true" onblur="currentRows[${index}].usuario = this.innerText">${row.usuario}</td>
-          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].sede = this.innerText">${row.sede}</td>
-          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].marca = this.innerText">${row.marca}</td>
-          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].modelo = this.innerText">${row.modelo}</td>
-          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].patrimonial = this.innerText">${row.patrimonial}</td>
-          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].modalidad = this.innerText">${row.modalidad}</td>
-          <td class="editable-cell" contenteditable="true" onblur="currentRows[${index}].serie = this.innerText">${row.serie}</td>
+          <td class="text-left editable-cell" contenteditable="false" data-field="usuario">${row.usuario || ''}</td>
+          <td class="editable-cell" contenteditable="false" data-field="sede">${row.sede || ''}</td>
+          <td class="editable-cell" contenteditable="false" data-field="marca">${row.marca || ''}</td>
+          <td class="editable-cell" contenteditable="false" data-field="modelo">${row.modelo || ''}</td>
+          <td class="editable-cell" contenteditable="false" data-field="patrimonial">${row.patrimonial || ''}</td>
+          <td class="editable-cell" contenteditable="false" data-field="modalidad">${row.modalidad || ''}</td>
+          <td class="editable-cell" contenteditable="false" data-field="serie">${row.serie || ''}</td>
           <td class="col-action">
-            <button class="btn-delete-row" title="Eliminar registro" onclick="deleteRow(${index})"><i class="fa-solid fa-trash"></i></button>
+            <button class="btn-action-icon btn-edit" id="btn-edit-${index}" title="Editar fila" onclick="enableRowEdit(${index})"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button class="btn-action-icon btn-save" id="btn-save-${index}" title="Guardar cambios" onclick="saveRowEdit(${index})"><i class="fa-solid fa-floppy-disk"></i></button>
+            <button class="btn-action-icon btn-del" title="Eliminar registro" onclick="deleteRowWithConfirm(${index})"><i class="fa-solid fa-trash"></i></button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -628,14 +646,48 @@
       document.getElementById('anexoCount').innerText = currentRows.length;
     }
 
-    function deleteRow(idx) {
-      currentRows.splice(idx, 1);
-      renderTable();
+    // ACTIVAR EDICIÓN POR FILA
+    function enableRowEdit(index) {
+      const tr = document.getElementById(`row-${index}`);
+      tr.classList.add('editing-row');
+      const cells = tr.querySelectorAll('.editable-cell');
+      cells.forEach(cell => cell.setAttribute('contenteditable', 'true'));
+      cells[0].focus();
+
+      document.getElementById(`btn-edit-${index}`).style.display = 'none';
+      document.getElementById(`btn-save-${index}`).style.display = 'inline-flex';
+    }
+
+    // GUARDAR EDICIÓN POR FILA
+    function saveRowEdit(index) {
+      const tr = document.getElementById(`row-${index}`);
+      tr.classList.remove('editing-row');
+      const cells = tr.querySelectorAll('.editable-cell');
+
+      cells.forEach(cell => {
+        cell.setAttribute('contenteditable', 'false');
+        const field = cell.getAttribute('data-field');
+        currentRows[index][field] = cell.innerText.trim();
+      });
+
+      document.getElementById(`btn-edit-${index}`).style.display = 'inline-flex';
+      document.getElementById(`btn-save-${index}`).style.display = 'none';
+      alert(`Registro #${index + 1} guardado correctamente en la vista.`);
+    }
+
+    // BORRAR CON CONFIRMACIÓN
+    function deleteRowWithConfirm(idx) {
+      const item = currentRows[idx];
+      const desc = item.usuario || item.patrimonial || item.sede || `Fila #${idx + 1}`;
+      if (confirm(`¿Está seguro de eliminar el registro "${desc}" de la tabla de reporte?`)) {
+        currentRows.splice(idx, 1);
+        renderTable();
+      }
     }
 
     function addNewRow() {
       currentRows.unshift({
-        usuario: 'NUEVO USUARIO',
+        usuario: '',
         sede: document.getElementById('filterSede').value || 'SEDE CENTRAL',
         marca: '',
         modelo: '',
@@ -644,6 +696,7 @@
         serie: ''
       });
       renderTable();
+      enableRowEdit(0);
     }
 
     function toggleSort() {
@@ -670,6 +723,38 @@
       initSedeFilter();
       updateCascadingFilters(1);
       applyFilters();
+    }
+
+    // DESCARGAR REPORTE CON CORRECCIONES EN CSV
+    function exportEditedCSV() {
+      if (currentRows.length === 0) {
+        alert('No hay registros para exportar.');
+        return;
+      }
+      let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+      csvContent += "N,USUARIO,SEDE,MARCA,MODELO,CODIGO_PATRIMONIAL,MODALIDAD,SERIE\n";
+
+      currentRows.forEach((r, idx) => {
+        const row = [
+          idx + 1,
+          `"${(r.usuario || '').replace(/"/g, '""')}"`,
+          `"${(r.sede || '').replace(/"/g, '""')}"`,
+          `"${(r.marca || '').replace(/"/g, '""')}"`,
+          `"${(r.modelo || '').replace(/"/g, '""')}"`,
+          `"${(r.patrimonial || '').replace(/"/g, '""')}"`,
+          `"${(r.modalidad || '').replace(/"/g, '""')}"`,
+          `"${(r.serie || '').replace(/"/g, '""')}"`
+        ];
+        csvContent += row.join(",") + "\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `mantenimiento_equipos_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
     window.addEventListener('DOMContentLoaded', loadDriveData);
