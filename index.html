@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ficha Técnica de Mantenimiento de Equipos</title>
-  <!-- PapaParse para procesar CSV -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <!-- Iconos FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -293,7 +291,7 @@
     <div class="status-bar">
       <div class="status-text" id="statusMessage">
         <i class="fa-solid fa-spinner fa-spin" style="color: #fd7e14;"></i>
-        <span>Sincronizando con Drive...</span>
+        <span>Sincronizando con Google Apps Script...</span>
       </div>
       <button class="btn-sync" onclick="loadDriveData()">
         <i class="fa-solid fa-arrows-rotate"></i> Sincronizar desde Drive
@@ -371,7 +369,7 @@
       </tr>
       <tr>
         <td class="label-col">Fecha de Mantenimiento:</td>
-        <td class="value-col editable-cell" contenteditable="true" id="docFecha">30 DE SEPTIEMBRE 2026</td>
+        <td class="value-col editable-cell" contenteditable="true" id="docFecha">1 DE OCTUBRE 2026</td>
       </tr>
       <tr>
         <td class="label-col">Tipo de Mantenimiento:</td>
@@ -440,82 +438,37 @@
   </div>
 
   <script>
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSvXAXZSTkNElot1kH6ihjoN3shMAQXNmulqFnDIDrpY7_sUKChcOTBoc2yNy-SBzZPAveB9aM6jRdq/pub?output=csv';
+    // URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
+    const API_URL = 'https://script.google.com/macros/s/AKfycby8ULD6Utrg3PVFo_IksX1sinGPDGIfQao1-yuTVTwWJvFkjE6g2iBiFqnzih-QfJ2aJw/exec';
 
     let rawData = [];
     let currentRows = [];
     let sortAsc = true;
 
-    function cleanKey(k) {
-      return (k || '').trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    }
-
     function loadDriveData() {
       const status = document.getElementById('statusMessage');
-      status.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#fd7e14;"></i> Sincronizando con Drive...`;
+      status.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#fd7e14;"></i> Sincronizando con Apps Script...`;
 
-      Papa.parse(CSV_URL, {
-        download: true,
-        header: true,
-        skipEmptyLines: false, // NO descarta filas con campos vacíos
-        complete: function(results) {
-          if (!results.data || results.data.length === 0) {
-            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error: Hoja sin datos o sin permisos.`;
+      fetch(API_URL)
+        .then(response => response.json())
+        .then(data => {
+          if (!data || data.length === 0 || data.error) {
+            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al cargar datos: ${data ? data.error : 'Sin registros'}`;
             return;
           }
 
-          rawData = results.data.map(item => {
-            const mapped = {};
-            for (let rawKey in item) {
-              const ck = cleanKey(rawKey);
-              const val = (item[rawKey] || '').trim();
-
-              if (ck === 'SEDE') mapped.sede = val;
-              else if (ck.includes('GERENCIA') || ck.includes('DIRECCION')) mapped.gerencia = val;
-              else if (ck.includes('SUB') && ck.includes('AREA')) mapped.subarea = val;
-              else if (ck === 'AREA') mapped.area = val;
-              else if (ck.includes('USUARIO') || ck.includes('RESPONSABLE')) mapped.usuario = val;
-              else if (ck.includes('MARCA')) mapped.marca = val;
-              else if (ck.includes('MODELO')) mapped.modelo = val;
-              else if (ck.includes('MODALIDAD')) mapped.modalidad = val;
-              else if (ck.includes('SERIE')) mapped.serie = val;
-
-              // Captura de código patrimonial (SBN_CONCILIADO)
-              if (ck.includes('SBN') || ck.includes('CONCILIADO') || ck.includes('PATRIMONIAL') || ck.includes('PATRIMONIO')) {
-                if (val && !mapped.patrimonial) {
-                  mapped.patrimonial = val;
-                }
-              }
-            }
-
-            return {
-              usuario: mapped.usuario || '',
-              sede: mapped.sede || '',
-              gerencia: mapped.gerencia || '',
-              area: mapped.area || '',
-              subarea: mapped.subarea || '',
-              marca: mapped.marca || '',
-              modelo: mapped.modelo || '',
-              patrimonial: mapped.patrimonial || '',
-              modalidad: mapped.modalidad || '',
-              serie: mapped.serie || ''
-            };
-          }).filter(r => {
-            // Mantiene la fila si tiene al menos UN campo con texto (incluyendo filas donde solo se colocó la SEDE)
-            return r.sede || r.usuario || r.patrimonial || r.marca || r.modelo || r.serie;
-          });
-
+          rawData = data;
           document.getElementById('totalBadge').innerText = rawData.length;
-          status.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #28a745;"></i> Conexión Exitosa con Drive: Se cargaron ${rawData.length} registros en vivo`;
+          status.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #28a745;"></i> Conexión Exitosa con API: Se cargaron ${rawData.length} registros en vivo`;
 
           initSedeFilter();
           updateCascadingFilters(1);
           applyFilters();
-        },
-        error: function(err) {
-          status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al conectar con Drive.`;
-        }
-      });
+        })
+        .catch(err => {
+          console.error(err);
+          status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al conectar con Apps Script.`;
+        });
     }
 
     function initSedeFilter() {
@@ -646,7 +599,6 @@
       document.getElementById('anexoCount').innerText = currentRows.length;
     }
 
-    // ACTIVAR EDICIÓN POR FILA
     function enableRowEdit(index) {
       const tr = document.getElementById(`row-${index}`);
       tr.classList.add('editing-row');
@@ -658,7 +610,6 @@
       document.getElementById(`btn-save-${index}`).style.display = 'inline-flex';
     }
 
-    // GUARDAR EDICIÓN POR FILA
     function saveRowEdit(index) {
       const tr = document.getElementById(`row-${index}`);
       tr.classList.remove('editing-row');
@@ -675,7 +626,6 @@
       alert(`Registro #${index + 1} guardado correctamente en la vista.`);
     }
 
-    // BORRAR CON CONFIRMACIÓN
     function deleteRowWithConfirm(idx) {
       const item = currentRows[idx];
       const desc = item.usuario || item.patrimonial || item.sede || `Fila #${idx + 1}`;
@@ -704,7 +654,7 @@
       currentRows.sort((a, b) => {
         const uA = (a.usuario || '').toLowerCase();
         const uB = (b.usuario || '').toLowerCase();
-        return sortAsc ? uA.localeCompare(uB) : uB.localeCompare(uA);
+        return sortAsc ? uA.localeCompare(uB) : uB.localeCompare(a.usuario || ''));
       });
       document.getElementById('sortLabel').innerText = sortAsc ? 'Ordenar Z-A (Nombres)' : 'Ordenar A-Z (Nombres)';
       document.getElementById('anexoSortState').innerText = `Ordenado por Nombres y Apellidos (${sortAsc ? 'A-Z' : 'Z-A'})`;
@@ -725,7 +675,6 @@
       applyFilters();
     }
 
-    // DESCARGAR REPORTE CON CORRECCIONES EN CSV
     function exportEditedCSV() {
       if (currentRows.length === 0) {
         alert('No hay registros para exportar.');
