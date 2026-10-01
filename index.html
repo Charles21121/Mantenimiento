@@ -445,30 +445,49 @@
     let currentRows = [];
     let sortAsc = true;
 
+// URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
+    const API_URL = 'https://script.google.com/macros/s/AKfycby8ULD6Utrg3PVFo_IksX1sinGPDGIfQao1-yuTVTwWJvFkjE6g2iBiFqnzih-QfJ2aJw/exec';
+
+    let rawData = [];
+    let currentRows = [];
+    let sortAsc = true;
+
     function loadDriveData() {
       const status = document.getElementById('statusMessage');
       status.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#fd7e14;"></i> Sincronizando con Apps Script...`;
 
-      fetch(API_URL)
-        .then(response => response.json())
-        .then(data => {
-          if (!data || data.length === 0 || data.error) {
-            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al cargar datos: ${data ? data.error : 'Sin registros'}`;
-            return;
-          }
+      // Se utiliza fetch configurado con redirect: 'follow' y headers específicos para Apps Script
+      fetch(API_URL, {
+        method: 'GET',
+        redirect: 'follow',
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Respuesta de red no válida: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (!data || data.length === 0 || data.error) {
+          status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al cargar datos: ${data ? (data.error || 'Sin registros') : 'Sin datos'}`;
+          return;
+        }
 
-          rawData = data;
-          document.getElementById('totalBadge').innerText = rawData.length;
-          status.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #28a745;"></i> Conexión Exitosa con API: Se cargaron ${rawData.length} registros en vivo`;
+        rawData = data;
+        document.getElementById('totalBadge').innerText = rawData.length;
+        status.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #28a745;"></i> Conexión Exitosa con API: Se cargaron ${rawData.length} registros en vivo`;
 
-          initSedeFilter();
-          updateCascadingFilters(1);
-          applyFilters();
-        })
-        .catch(err => {
-          console.error(err);
-          status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al conectar con Apps Script.`;
-        });
+        initSedeFilter();
+        updateCascadingFilters(1);
+        applyFilters();
+      })
+      .catch(err => {
+        console.error('Error detallado de conexión:', err);
+        status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al conectar con Apps Script. Verifique permisos o consola (F12).`;
+      });
     }
 
     function initSedeFilter() {
