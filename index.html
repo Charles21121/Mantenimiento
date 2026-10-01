@@ -452,29 +452,54 @@
     let currentRows = [];
     let sortAsc = true;
 
+const API_URL = 'https://script.google.com/macros/s/AKfycby8ULD6Utrg3PVFo_IksX1sinGPDGIfQao1-yuTVTwWJvFkjE6g2iBiFqnzih-QfJ2aJw/exec';
+
+    let rawData = [];
+    let currentRows = [];
+    let sortAsc = true;
+
+    // Función callback global para recibir los datos de Google Apps Script
+    window.onDataLoaded = function(data) {
+      const status = document.getElementById('statusMessage');
+      
+      if (!data || data.length === 0 || data.error) {
+        status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al cargar datos: ${data ? (data.error || 'Sin registros') : 'Sin datos'}`;
+        return;
+      }
+
+      rawData = data;
+      document.getElementById('totalBadge').innerText = rawData.length;
+      status.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #28a745;"></i> Conexión Exitosa con API: Se cargaron ${rawData.length} registros en vivo`;
+
+      initSedeFilter();
+      updateCascadingFilters(1);
+      applyFilters();
+
+      // Limpia el script temporal creado
+      const oldScript = document.getElementById('jsonp-script');
+      if (oldScript) oldScript.remove();
+    };
+
     function loadDriveData() {
       const status = document.getElementById('statusMessage');
       status.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#fd7e14;"></i> Sincronizando con Apps Script...`;
 
-      // Se utiliza fetch configurado con redirect: 'follow' y headers específicos para Apps Script
-      fetch(API_URL, {
-        method: 'GET',
-        redirect: 'follow',
-        headers: {
-          'Accept': 'application/json'
-        }
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Respuesta de red no válida: ' + response.status);
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (!data || data.length === 0 || data.error) {
-          status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al cargar datos: ${data ? (data.error || 'Sin registros') : 'Sin datos'}`;
-          return;
-        }
+      // Elimina cualquier script previo
+      const oldScript = document.getElementById('jsonp-script');
+      if (oldScript) oldScript.remove();
+
+      // Crea la llamada JSONP dinámica saltando cualquier restricción CORS
+      const script = document.createElement('script');
+      script.id = 'jsonp-script';
+      script.src = `${API_URL}?callback=onDataLoaded&_=${new Date().getTime()}`;
+      
+      script.onerror = function() {
+        status.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#dc3545;"></i> Error al conectar con Apps Script.`;
+      };
+
+      document.body.appendChild(script);
+    }
+
 
         rawData = data;
         document.getElementById('totalBadge').innerText = rawData.length;
